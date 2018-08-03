@@ -1,0 +1,15 @@
+[package]
+name = "markov"
+version = "0.1.0"
+authors = ["Yuri Artemev <i@artemeff.com>"]
+
+[lib]
+name = "markov"
+path = "src/lib.rs"
+crate-type = ["dylib"]
+
+[dependencies]
+markov = "1.0.2"
+rustler = "0.18.0"
+rustler_codegen = "0.18.0"
+lazy_static = "1.0.0"
