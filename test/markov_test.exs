@@ -54,6 +54,11 @@ defmodule MarkovTest do
       assert :ok == Markov.feed_file(markov, "test/fixtures/lorem.txt")
       assert ["Temporibus" | _] = Markov.generate_from_token(markov, "Temporibus")
     end
+
+    test "returns error when file not found" do
+      assert markov = Markov.new
+      assert {:error, :enoent} == Markov.feed_file(markov, "test/fixtures/not_found")
+    end
   end
 
   describe "#generate" do
@@ -115,6 +120,12 @@ defmodule MarkovTest do
       assert :ok == Markov.save(markov, path)
       assert File.read!(path)
     end
+
+    test "returns error when saving to undefined file" do
+      assert markov = Markov.new
+      assert :ok == Markov.feed_str(markov, "what the heck")
+      assert {:error, :enoent} == Markov.save(markov, "test/fixtures/undefined_folder/undefined")
+    end
   end
 
   describe "#load" do
@@ -125,13 +136,17 @@ defmodule MarkovTest do
       {:ok, path: path}
     end
 
-    test "saves to file", %{path: path} do
+    test "loads from file", %{path: path} do
       assert m1 = Markov.new
       assert :ok == Markov.feed_str(m1, "what the heck")
       assert :ok == Markov.save(m1, path)
 
       assert m2 = Markov.load(path)
       assert ["what", "the", "heck"] == Markov.generate_from_token(m2, "what")
+    end
+
+    test "returns error when loads from undefined file" do
+      assert {:error, :enoent} == Markov.load("test/fixtures/undefined")
     end
   end
 end

@@ -3,39 +3,25 @@
 
 extern crate markov;
 
+use std::io;
 use std::path::Path;
 use std::sync::RwLock;
 use markov::Chain;
-use rustler::{Env, Term, NifResult, Error, Encoder};
-// use rustler::types::OwnedBinary;
-use rustler::resource::{ResourceArc};
+use rustler::{Env, Term, Error, Encoder};
+use rustler::resource::ResourceArc;
 
 mod atoms {
     rustler_atoms! {
         atom ok;
         atom nil;
-        // atom error;
+        atom error;
 
-        // atom empty_chain;
-
-        // Posix
-        // atom enoent; // File does not exist
-        // atom eacces; // Permission denied
-        // atom epipe;  // Broken pipe
-        // atom eexist; // File exists
+        atom enoent; // File does not exist
+        atom eacces; // Permission denied
+        atom epipe;  // Broken pipe
+        atom eexist; // File exists
     }
 }
-
-// new/0
-// of_order/1
-// is_empty/1
-// feed/2
-// feed_str/2
-// feed_file/2
-// generate/1
-// generate_from_token/2
-// save/2
-// load/1
 
 rustler_export_nifs!(
     "Elixir.Markov",
@@ -52,6 +38,27 @@ rustler_export_nifs!(
      ("load", 1, load)],
     Some(on_load)
 );
+
+fn io_error_to_term<'a>(env: Env<'a>, err: &io::Error) -> Term<'a> {
+    let error = match err.kind() {
+        io::ErrorKind::NotFound => atoms::enoent().encode(env),
+        io::ErrorKind::PermissionDenied => atoms::eacces().encode(env),
+        io::ErrorKind::BrokenPipe => atoms::epipe().encode(env),
+        io::ErrorKind::AlreadyExists => atoms::eexist().encode(env),
+        _ => format!("{}", err).encode(env),
+    };
+
+    (atoms::error(), error).encode(env)
+}
+
+macro_rules! handle_io_error {
+    ($env:expr, $e:expr) => {
+        match $e {
+            Ok(inner) => inner,
+            Err(ref error) => return Ok(io_error_to_term($env, error)),
+        }
+    };
+}
 
 struct Markov {
     chain: RwLock<Chain<String>>
@@ -110,8 +117,7 @@ fn feed_file<'a>(env: Env<'a>, args: &[Term<'a>]) -> Result<Term<'a>, Error> {
     let path = Path::new(&path);
 
     let mut chain = markov.chain.write().unwrap();
-    chain.feed_file(path).unwrap();
-
+    handle_io_error!(env, chain.feed_file(path));
     Ok(atoms::ok().encode(env))
 }
 
@@ -150,9 +156,8 @@ fn save<'a>(env: Env<'a>, args: &[Term<'a>]) -> Result<Term<'a>, Error> {
     let path: String = args[1].decode()?;
     let path = Path::new(&path);
 
-    let chain = markov.chain.write().unwrap();
-    // TODO
-    chain.save(path).unwrap();
+    let chain = markov.chain.read().unwrap();
+    handle_io_error!(env, chain.save(path));
 
     Ok(atoms::ok().encode(env))
 }
@@ -160,8 +165,7 @@ fn save<'a>(env: Env<'a>, args: &[Term<'a>]) -> Result<Term<'a>, Error> {
 fn load<'a>(env: Env<'a>, args: &[Term<'a>]) -> Result<Term<'a>, Error> {
     let path: String = args[0].decode()?;
     let path = Path::new(&path);
-    // TODO
-    let chain: Chain<String> = Chain::load(&path).unwrap();
+    let chain: Chain<String> = handle_io_error!(env, Chain::load(&path));
     let markov = Markov { chain: RwLock::new(chain) };
 
     Ok(ResourceArc::new(markov).encode(env))
