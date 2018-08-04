@@ -21,7 +21,8 @@ defmodule Markov.MixProject do
 
   defp deps do
     [
-      {:rustler, "~> 0.18.0"}
+      {:rustler, "~> 0.18.0"},
+      {:benchfella, "~> 0.3.5", only: :dev},
     ]
   end
 
