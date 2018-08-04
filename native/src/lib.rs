@@ -86,7 +86,7 @@ fn of_order<'a>(env: Env<'a>, args: &[Term<'a>]) -> Result<Term<'a>, Error> {
 
 fn is_empty<'a>(env: Env<'a>, args: &[Term<'a>]) -> Result<Term<'a>, Error> {
     let markov: ResourceArc<Markov> = args[0].decode()?;
-    let chain = markov.chain.write().unwrap();
+    let chain = markov.chain.read().unwrap();
 
     Ok(chain.is_empty().encode(env))
 }
@@ -123,7 +123,7 @@ fn feed_file<'a>(env: Env<'a>, args: &[Term<'a>]) -> Result<Term<'a>, Error> {
 
 fn generate<'a>(env: Env<'a>, args: &[Term<'a>]) -> Result<Term<'a>, Error> {
     let markov: ResourceArc<Markov> = args[0].decode()?;
-    let chain = markov.chain.write().unwrap();
+    let chain = markov.chain.read().unwrap();
 
     if chain.is_empty() {
         return Ok(atoms::nil().encode(env))
@@ -134,7 +134,7 @@ fn generate<'a>(env: Env<'a>, args: &[Term<'a>]) -> Result<Term<'a>, Error> {
 
 fn generate_str<'a>(env: Env<'a>, args: &[Term<'a>]) -> Result<Term<'a>, Error> {
     let markov: ResourceArc<Markov> = args[0].decode()?;
-    let chain = markov.chain.write().unwrap();
+    let chain = markov.chain.read().unwrap();
 
     if chain.is_empty() {
         return Ok(atoms::nil().encode(env))
@@ -146,7 +146,7 @@ fn generate_str<'a>(env: Env<'a>, args: &[Term<'a>]) -> Result<Term<'a>, Error> 
 fn generate_from_token<'a>(env: Env<'a>, args: &[Term<'a>]) -> Result<Term<'a>, Error> {
     let markov: ResourceArc<Markov> = args[0].decode()?;
     let token: String = args[1].decode()?;
-    let chain = markov.chain.write().unwrap();
+    let chain = markov.chain.read().unwrap();
 
     Ok(chain.generate_from_token(token).encode(env))
 }
